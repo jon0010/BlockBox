@@ -1,2 +1,2 @@
 [registries]
-github = { index = "https://github.com/jon0010/practica-rust/packages" }
+github = { index = "https://npm.pkg.github.com/" }
