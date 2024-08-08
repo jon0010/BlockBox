@@ -1,5 +1,20 @@
 #!/bin/bash
 
+# Colores
+LBLUE='\033[1;34m'  # Azul claro
+GREEN='\033[1;32m'  # Verde negrita
+NC='\033[0m'        # Sin color
+
+# Mostrar el logo
+echo -e "\n${LBLUE}
+██████╗ ██╗      ██████╗  ██████╗██╗  ██╗██████╗  ██████╗ ██╗  ██╗
+██╔══██╗██║     ██╔═══██╗██╔════╝██║ ██╔╝██╔══██╗██╔═══██╗╚██╗██╔╝
+██████╔╝██║     ██║   ██║██║     █████╔╝ ██████╔╝██║   ██║ ╚███╔╝ 
+██╔══██╗██║     ██║   ██║██║     ██╔═██╗ ██╔══██╗██║   ██║ ██╔██╗ 
+██████╔╝███████╗╚██████╔╝╚██████╗██║  ██╗██████╔╝╚██████╔╝██╔╝ ██╗
+╚═════╝ ╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝
+${NC}"
+
 # Cargar variables de entorno desde el archivo .env
 if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
@@ -11,23 +26,23 @@ BRANCH="main"
 TOKEN="$GITHUB_ACCESS_TOKEN"
 RUST_INSTALLER="curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
 
-# Colores
-LBLUE='\033[1;34m'
-NC='\033[0m'
+# Mostrar mensaje en verde negrita
+echo -e "\n${GREEN}Ingrese el nombre del proyecto:${NC}"
 
-# Preguntar por el nombre del proyecto usando read
-read -p "Ingrese el nombre del proyecto: " project_name
+# Leer la entrada
+read project_name
+
+# Validar la entrada
 if [ -z "$project_name" ]; then
     echo "Nombre vacío. Terminando la secuencia..."
     exit 1
 fi
-echo "Nombre del proyecto: $project_name"
 
 # Definir el directorio de destino como el nombre del proyecto
 DEST_DIR="$project_name"
 
 # Clonar repositorio
-echo -e "\n${LBLUE}Clonando el repositorio...${NC}"
+echo -e "\n${LBLUE}Generando nuevo proyecto...${NC}"
 git clone -b ${BRANCH} "https://${TOKEN}@github.com/jon0010/practica-rust.git" repo_temp
 if [ $? -ne 0 ]; then
     echo "Error al clonar el repositorio."
@@ -40,47 +55,31 @@ if [ ! -d "repo_temp/src/templates-backend" ]; then
     exit 1
 fi
 
-# Listar las carpetas en src/templates-backend
-echo -e "\n${LBLUE}Contenido de src/templates-backend:${NC}"
-for dir in repo_temp/src/templates-backend/*/; do
-    if [ -d "$dir" ]; then
-        echo "$(basename $dir)"
-    fi
-done
-
-# Crear la lista de opciones para el menú de backend
+# Crear la lista de templates usando `fzf`
 backends=$(ls -d repo_temp/src/templates-backend/*/ | xargs -n 1 basename)
-echo "Opciones de backend disponibles:"
-select backend in $backends; do
-    if [ -n "$backend" ]; then
-        selected_backend="$backend"
-        break
-    else
-        echo "Selección inválida. Intenta nuevamente."
-    fi
-done
+selected_backend=$(echo "$backends" | fzf --prompt "Elige un template para tu backend: " --height=10)
+if [ -z "$selected_backend" ]; then
+    echo "No se seleccionó ningún template. Terminando la secuencia..."
+    exit 1
+fi
 echo "Backend seleccionado: $selected_backend"
 
-# Preguntar por el tipo de base de datos
-echo "Selecciona el tipo de base de datos:"
-select db in "PostgreSQL" "MongoDB"; do
-    case $db in
-        PostgreSQL) database="postgres"; break ;;
-        MongoDB) database="mongo"; break ;;
-        *) echo "Selección inválida. Intenta nuevamente." ;;
-    esac
-done
+# Preguntar por el tipo de base de datos usando `fzf`
+database=$(echo -e "PostgreSQL\nMongoDB" | fzf --prompt "¿Qué base de datos vas a usar? " --height=10)
+case $database in
+    PostgreSQL) database="postgres" ;;
+    MongoDB) database="mongo" ;;
+    *) echo "Selección inválida. Terminando la secuencia..."; exit 1 ;;
+esac
 echo "Base de datos seleccionada: $database"
 
-# Preguntar por el tipo de conexión
-echo "Selecciona el tipo de conexión:"
-select conn in "Local" "Remota"; do
-    case $conn in
-        Local) connection="local"; break ;;
-        Remota) connection="remote"; break ;;
-        *) echo "Selección inválida. Intenta nuevamente." ;;
-    esac
-done
+# Preguntar por el tipo de conexión usando `fzf`
+connection=$(echo -e "Local\nRemota" | fzf --prompt "Selecciona el tipo de conexión: " --height=10)
+case $connection in
+    Local) connection="local" ;;
+    Remota) connection="remote" ;;
+    *) echo "Selección inválida. Terminando la secuencia..."; exit 1 ;;
+esac
 echo "Tipo de conexión seleccionado: $connection"
 
 # Instalar Rust si no está instalado
