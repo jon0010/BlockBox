@@ -28,13 +28,17 @@ fn main() {
             .unwrap_or(&"local".to_string())
             .clone();
 
-        // Descomenta y ajusta esta parte si es necesario:
-        // let models: Vec<String> = matches
-        //     .get_many::<String>("model")
-        //     .unwrap_or_default()
-        //     .cloned()
-        //     .collect();
-
-        project::generator::generate_project(&project_name, &backend, &database, &connection);
+        // Manejo de Result
+        if
+            let Err(e) = project::generator::generate_project(
+                &project_name,
+                &backend,
+                &database,
+                &connection
+            )
+        {
+            eprintln!("Error al generar el proyecto: {}", e);
+            std::process::exit(1);
+        }
     }
 }
